@@ -31,16 +31,14 @@ float get_value(io_connect_t * ioc, uint32_t key) {
 }
 
 int main(void) {
-  mach_port_t mp;
   CFMutableDictionaryRef d;
   io_iterator_t it;
   io_object_t svc;
   io_connect_t ioc;
   float v, i, system_total;
 
-  IOMasterPort(MACH_PORT_NULL, &mp);
   d = IOServiceMatching("AppleSMC");
-  IOServiceGetMatchingServices(mp, d, &it);
+  IOServiceGetMatchingServices(kIOMainPortDefault, d, &it);
   svc = IOIteratorNext(it);
   IOObjectRelease(it);
   IOServiceOpen(svc, mach_task_self(), 0, &ioc);
