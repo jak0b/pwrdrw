@@ -3,7 +3,12 @@
 // original code from https://apple.stackexchange.com/a/283403 by Luyer, modified by M-1
 
 #include <stdio.h>
+#include <errno.h>
+#include <limits.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
 #include <IOKit/IOKitLib.h>
 
 typedef struct {
@@ -30,12 +35,40 @@ float get_value(io_connect_t * ioc, uint32_t key) {
   return resp.val;
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
   CFMutableDictionaryRef d;
   io_iterator_t it;
   io_object_t svc;
   io_connect_t ioc;
   float v, i, system_total;
+  int loop = 0;
+  int interval_ms = 1000;
+  int option;
+
+  while ((option = getopt(argc, argv, "lr:")) != -1) {
+    if (option == 'l') {
+      loop = 1;
+    } else if (option == 'r') {
+      char *end;
+      long value;
+
+      errno = 0;
+      value = strtol(optarg, &end, 10);
+      if (errno != 0 || *optarg == '\0' || *end != '\0' || value <= 0 || value > INT_MAX) {
+        fprintf(stderr, "Invalid interval: %s (expected a positive number of milliseconds)\n", optarg);
+        return 1;
+      }
+      interval_ms = (int)value;
+    } else {
+      fprintf(stderr, "Usage: %s [-l] [-r milliseconds]\n", argv[0]);
+      return 1;
+    }
+  }
+
+  if (optind != argc) {
+    fprintf(stderr, "Usage: %s [-l] [-r milliseconds]\n", argv[0]);
+    return 1;
+  }
 
   d = IOServiceMatching("AppleSMC");
   IOServiceGetMatchingServices(kIOMainPortDefault, d, &it);
@@ -44,14 +77,24 @@ int main(void) {
   IOServiceOpen(svc, mach_task_self(), 0, &ioc);
   IOObjectRelease(svc);
 
-  // SMC keys/"codes" can be found at https://logi.wiki/index.php/SMC_Sensor_Codes
-  v = get_value(&ioc, ('V' << 24) + ('D' << 16) + ('0' << 8) + 'R');
-  i = get_value(&ioc, ('I' << 24) + ('D' << 16) + ('0' << 8) + 'R');
-  system_total = get_value(&ioc, ('P' << 24) + ('S' << 16) + ('T' << 8) + 'R');
+  do {
+    // SMC keys/"codes" can be found at https://logi.wiki/index.php/SMC_Sensor_Codes
+    v = get_value(&ioc, ('V' << 24) + ('D' << 16) + ('0' << 8) + 'R');
+    i = get_value(&ioc, ('I' << 24) + ('D' << 16) + ('0' << 8) + 'R');
+    system_total = get_value(&ioc, ('P' << 24) + ('S' << 16) + ('T' << 8) + 'R');
+
+    printf("DC In: %fV %fA %fW\n", v, i, v*i);
+    printf("System Total: %fW\n", system_total);
+    fflush(stdout);
+
+    if (loop) {
+      struct timespec remaining = {interval_ms / 1000, (interval_ms % 1000) * 1000000L};
+
+      while (nanosleep(&remaining, &remaining) == -1 && errno == EINTR) {
+      }
+    }
+  } while (loop);
 
   IOServiceClose(ioc);
-
-  printf("DC In: %fV %fA %fW\n", v, i, v*i);
-  printf("System Total: %fW\n", system_total);
   return 0;
 }
