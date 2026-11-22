@@ -42,12 +42,15 @@ int main(int argc, char *argv[]) {
   io_connect_t ioc;
   float v, i, system_total;
   int loop = 0;
+  int clear_screen = 0;
   int interval_ms = 1000;
   int option;
 
-  while ((option = getopt(argc, argv, "lr:")) != -1) {
+  while ((option = getopt(argc, argv, "clr:")) != -1) {
     if (option == 'l') {
       loop = 1;
+    } else if (option == 'c') {
+      clear_screen = 1;
     } else if (option == 'r') {
       char *end;
       long value;
@@ -60,13 +63,13 @@ int main(int argc, char *argv[]) {
       }
       interval_ms = (int)value;
     } else {
-      fprintf(stderr, "Usage: %s [-l] [-r milliseconds]\n", argv[0]);
+      fprintf(stderr, "Usage: %s [-l] [-c] [-r milliseconds]\n", argv[0]);
       return 1;
     }
   }
 
   if (optind != argc) {
-    fprintf(stderr, "Usage: %s [-l] [-r milliseconds]\n", argv[0]);
+    fprintf(stderr, "Usage: %s [-l] [-c] [-r milliseconds]\n", argv[0]);
     return 1;
   }
 
@@ -78,6 +81,10 @@ int main(int argc, char *argv[]) {
   IOObjectRelease(svc);
 
   do {
+    if (loop && clear_screen) {
+      printf("\033[H\033[2J");
+    }
+
     // SMC keys/"codes" can be found at https://logi.wiki/index.php/SMC_Sensor_Codes
     v = get_value(&ioc, ('V' << 24) + ('D' << 16) + ('0' << 8) + 'R');
     i = get_value(&ioc, ('I' << 24) + ('D' << 16) + ('0' << 8) + 'R');
