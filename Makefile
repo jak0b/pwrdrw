@@ -6,8 +6,8 @@ TARGET = power-usage
 
 all: $(TARGET)
 
-$(TARGET): main.c
-	$(CC) $(CFLAGS) main.c -o $(TARGET) -framework IOKit -framework CoreFoundation
+$(TARGET): main.c $(wildcard vendor/civetweb/*)
+	$(CC) $(CFLAGS) -DNO_SSL -Ivendor/civetweb main.c vendor/civetweb/civetweb.c -o $(TARGET) -framework IOKit -framework CoreFoundation
 
 clean:
 	rm -f $(TARGET)
