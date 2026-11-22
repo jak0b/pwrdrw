@@ -9,3 +9,7 @@ Run `./power-usage -p 9100` to serve Prometheus metrics at `http://localhost:910
 The endpoint exports four gauges: `power_usage_dc_voltage_volts`, `power_usage_dc_current_amperes`, `power_usage_dc_power_watts`, and `power_usage_system_total_power_watts`. DC power is calculated as voltage multiplied by current. The endpoint returns HTTP 503 if a reading fails.
 
 The HTTP server is [CivetWeb v1.16](https://github.com/civetweb/civetweb/releases/tag/v1.16), pinned as a Git submodule at `vendor/civetweb/` under its MIT license. No separate HTTP package is needed.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
