@@ -45,6 +45,30 @@ The endpoint exports four gauges:
 
 DC input power is calculated as voltage multiplied by current. The endpoint returns HTTP 503 if a reading fails.
 
+## Install as a background service
+
+Build and install a per-user LaunchAgent that starts at login and restarts if it exits:
+
+```sh
+make install
+```
+
+The service listens on all IPv4 network interfaces on port 9100. Choose another port with `make install PORT=9200`. Because the unauthenticated metrics endpoint is reachable from the network, restrict access with your firewall if needed.
+
+To stop the service for the current login session:
+
+```sh
+launchctl bootout "gui/$(id -u)/com.jak0b.power-usage-macos.agent"
+```
+
+The installed binary is in `~/Library/Application Support/power-usage-macos/`, and the LaunchAgent is in `~/Library/LaunchAgents/`.
+
+Remove the service, binary, and its log with:
+
+```sh
+make uninstall
+```
+
 The HTTP server is [CivetWeb v1.16](https://github.com/civetweb/civetweb/releases/tag/v1.16), pinned as a Git submodule in `vendor/civetweb/` under its MIT license. No separate HTTP package is needed.
 
 ## License
