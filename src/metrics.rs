@@ -93,7 +93,11 @@ pub async fn serve(port: u16, smc: SmcConnection) -> Result<(), Box<dyn Error>> 
     ipv6_socket.set_nonblocking(true)?;
     let ipv6 = TcpListener::from_std(ipv6_socket.into())?;
 
-    eprintln!("Serving metrics on http://localhost:{port}/metrics");
+    eprintln!(
+        "Serving metrics on http://{}/metrics and http://{}/metrics",
+        ipv4.local_addr()?,
+        ipv6.local_addr()?
+    );
     let ipv4_app = app.clone();
     let ipv6_app = app;
     tokio::try_join!(
