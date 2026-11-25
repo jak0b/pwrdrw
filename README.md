@@ -7,14 +7,14 @@ Read DC input voltage, current, power, and total system power from the macOS App
 Build the Rust application:
 
 ```sh
-make
+cargo build --release
 ```
 
 ## Readings
 
-Run `./power-usage` to print one reading.
+Run `./target/release/power-usage` to print one reading.
 
-Use `./power-usage -l` to print readings repeatedly. The repeat interval defaults to one second.
+Use `./target/release/power-usage -l` to print readings repeatedly. The repeat interval defaults to one second.
 
 - `-r milliseconds` changes the repeat interval.
 - `-c` clears the screen between readings.
@@ -24,7 +24,7 @@ Use `./power-usage -l` to print readings repeatedly. The repeat interval default
 Run the exporter on port 9100:
 
 ```sh
-./power-usage -p 9100
+./target/release/power-usage -p 9100
 ```
 
 Metrics are available at <http://localhost:9100/metrics>. The server listens on all network interfaces and reads AppleSMC on each scrape. When Prometheus runs on the same Mac, use `localhost:9100` as the scrape target.
@@ -43,10 +43,11 @@ DC input power is calculated as voltage multiplied by current. The endpoint retu
 Build and install a per-user LaunchAgent that starts at login and restarts if it exits:
 
 ```sh
-make install
+cargo build --release
+./scripts/install.sh target/release/power-usage
 ```
 
-The service listens on all IPv4 and IPv6 network interfaces on port 9100. Choose another port with `make install PORT=9200`. Because the unauthenticated metrics endpoint is reachable from the network, restrict access with your firewall if needed.
+The service listens on all IPv4 and IPv6 network interfaces on port 9100. Choose another port with `PORT=9200 ./scripts/install.sh target/release/power-usage`. Because the unauthenticated metrics endpoint is reachable from the network, restrict access with your firewall if needed.
 
 To stop the service for the current login session:
 
@@ -59,7 +60,7 @@ The installed binary is in `~/Library/Application Support/power-usage-macos/`, a
 Remove the service, binary, and its log with:
 
 ```sh
-make uninstall
+./scripts/uninstall.sh
 ```
 
 ## License

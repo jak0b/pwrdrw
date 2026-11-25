@@ -2,15 +2,15 @@
 
 ## Structure
 
-`main.c` contains the complete macOS command-line program. There are no tests or assets yet.
+`src/main.rs` contains the macOS command-line program. `Cargo.toml` and `Cargo.lock` define the Rust application. `scripts/` contains the LaunchAgent installer and uninstaller.
 
 ## Build and Run
 
-Run `make` to compile `main.c` with IOKit and CoreFoundation into `power-usage`. Run `./power-usage` on a Mac with the `AppleSMC` service to view power readings. Run `make clean` to remove the binary.
+Run `cargo build --release` to build `target/release/power-usage`. Run `./target/release/power-usage` on a Mac with the `AppleSMC` service to view power readings. Run `cargo clean` to remove build artifacts.
 
 ## Style and Testing
 
-Use two-space indentation, same-line opening braces, and `snake_case` names, matching `main.c`. No formatter or automated test suite is configured. After changes, run `make` and check that `./power-usage` prints both output lines with plausible values. Run `./power-usage` outside the sandbox for this manual check: sandboxed access to AppleSMC can fail with `Unable to open AppleSMC` even when the service is available. When changing metrics, also run the server outside the sandbox and check the `/metrics` response.
+Use standard Rust formatting; run `cargo fmt --check` and `cargo clippy -- -D warnings`. No automated test suite is configured. After changes, run `cargo build --release` and check that `./target/release/power-usage` prints both output lines with plausible values. Run it outside the sandbox for this manual check: sandboxed access to AppleSMC can fail with `Unable to open AppleSMC` even when the service is available. When changing metrics, also run the server outside the sandbox and check the `/metrics` response.
 
 ## Commits and Pull Requests
 
