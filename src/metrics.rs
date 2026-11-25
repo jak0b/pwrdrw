@@ -2,7 +2,11 @@ use std::{
     error::Error,
     future::IntoFuture,
     net::{IpAddr, SocketAddr},
-    sync::{Arc, Mutex},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Duration,
 };
 
 use axum::{
@@ -15,13 +19,13 @@ use axum::{
 use metrics::{describe_gauge, gauge};
 use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
-use tokio::{net::TcpListener, task::JoinSet};
+use tokio::{net::TcpListener, task::JoinSet, time::MissedTickBehavior};
 
 use crate::power_reading::{Readings, SmcConnection};
 
 #[derive(Clone)]
 struct MetricsState {
-    smc: Arc<Mutex<SmcConnection>>,
+    readings_available: Arc<AtomicBool>,
     prometheus: PrometheusHandle,
 }
 
@@ -34,14 +38,9 @@ fn record_metrics(readings: Readings) {
 }
 
 async fn metrics_handler(State(state): State<MetricsState>) -> Response<Body> {
-    let readings = match state.smc.lock() {
-        Ok(smc) => match smc.read_power() {
-            Ok(readings) => readings,
-            Err(_) => return unavailable_response(),
-        },
-        Err(_) => return unavailable_response(),
-    };
-    record_metrics(readings);
+    if !state.readings_available.load(Ordering::Relaxed) {
+        return unavailable_response();
+    }
 
     Response::builder()
         .status(StatusCode::OK)
@@ -92,13 +91,15 @@ fn bind_listener(host: IpAddr, port: u16) -> Result<TcpListener, Box<dyn Error>>
 
 pub async fn serve(
     port: u16,
+    poll_interval: u64,
     hosts: Vec<IpAddr>,
     smc: SmcConnection,
 ) -> Result<(), Box<dyn Error>> {
     let prometheus = PrometheusBuilder::new().install_recorder()?;
     describe_metrics();
+    let readings_available = Arc::new(AtomicBool::new(false));
     let state = MetricsState {
-        smc: Arc::new(Mutex::new(smc)),
+        readings_available: Arc::clone(&readings_available),
         prometheus,
     };
     let app = Router::new()
@@ -113,6 +114,41 @@ pub async fn serve(
         .iter()
         .map(|listener| listener.local_addr())
         .collect::<Result<Vec<_>, _>>()?;
+
+    let smc = Arc::new(Mutex::new(smc));
+    let polling_smc = Arc::clone(&smc);
+    let poll_interval = Duration::from_millis(poll_interval);
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(poll_interval);
+        interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
+
+        loop {
+            interval.tick().await;
+            let smc = Arc::clone(&polling_smc);
+            match tokio::task::spawn_blocking(move || {
+                let smc = smc
+                    .lock()
+                    .map_err(|_| std::io::Error::other("AppleSMC lock was poisoned"))?;
+                smc.read_power()
+            })
+            .await
+            {
+                Ok(Ok(readings)) => {
+                    record_metrics(readings);
+                    readings_available.store(true, Ordering::Relaxed);
+                }
+                Ok(Err(error)) => {
+                    eprintln!("Unable to read AppleSMC: {error}");
+                    readings_available.store(false, Ordering::Relaxed);
+                }
+                Err(error) => {
+                    eprintln!("AppleSMC polling task failed: {error}");
+                    readings_available.store(false, Ordering::Relaxed);
+                }
+            }
+        }
+    });
+
     eprintln!(
         "Serving metrics on {}",
         addresses

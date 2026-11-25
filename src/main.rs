@@ -55,6 +55,10 @@ struct MetricsArgs {
     #[arg(short = 'p', long, value_parser = clap::value_parser!(u16).range(1..))]
     port: u16,
 
+    /// Delay between AppleSMC readings in milliseconds
+    #[arg(short = 'l', long, default_value_t = 1000, value_parser = clap::value_parser!(u64).range(1..=2147483647))]
+    poll_interval: u64,
+
     /// Comma-separated IP addresses to serve metrics on
     #[arg(short = 'h', long, value_delimiter = ',')]
     hosts: Option<Vec<IpAddr>>,
@@ -87,7 +91,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 IpAddr::V6(Ipv6Addr::UNSPECIFIED),
             ]
         });
-        return metrics::serve(metrics_args.port, hosts, smc).await;
+        return metrics::serve(metrics_args.port, metrics_args.poll_interval, hosts, smc).await;
     }
 
     let smc = Mutex::new(smc);

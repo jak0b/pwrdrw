@@ -27,10 +27,10 @@ Run the exporter on port 9100:
 ./target/release/power-usage metrics -p 9100
 ```
 
-By default, the server listens on all IPv4 and IPv6 network interfaces and reads AppleSMC on each scrape. Specify a comma-separated list of IP addresses with `-h` to restrict which interfaces it binds to:
+By default, the server listens on all IPv4 and IPv6 network interfaces and polls AppleSMC once per second in the background. Use `-l` to change the polling interval in milliseconds, and specify a comma-separated list of IP addresses with `-h` to restrict which interfaces it binds to:
 
 ```sh
-./target/release/power-usage metrics -p 9100 -h 127.0.0.1,192.168.1.10
+./target/release/power-usage metrics -p 9100 -l 500 -h 127.0.0.1,192.168.1.10
 ```
 
 Metrics are available at `http://<bound-address>:9100/metrics`. The app prints the actual bound addresses when it starts. When Prometheus runs on the same Mac, use `localhost:9100` as the scrape target if the server is listening on the loopback interface.
