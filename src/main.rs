@@ -15,6 +15,7 @@ use tokio::time::sleep;
 
 mod metrics;
 mod power_reading;
+mod server;
 
 #[cfg(not(target_os = "macos"))]
 compile_error!("power-usage-macos can only be built for macOS");
@@ -91,7 +92,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 IpAddr::V6(Ipv6Addr::UNSPECIFIED),
             ]
         });
-        return metrics::serve(metrics_args.port, metrics_args.poll_interval, hosts, smc).await;
+        return server::serve(metrics_args.port, metrics_args.poll_interval, hosts, smc).await;
     }
 
     let smc = Mutex::new(smc);

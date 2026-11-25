@@ -2,7 +2,7 @@
 
 ## Structure
 
-`src/main.rs` contains the CLI entry point, `src/metrics.rs` implements the Prometheus endpoint, and `src/power_reading.rs` handles AppleSMC access. `Cargo.toml` and `Cargo.lock` define the Rust application. `scripts/` contains the LaunchAgent installer and uninstaller.
+`src/main.rs` contains the CLI entry point, `src/server.rs` implements the Prometheus HTTP endpoint, `src/metrics.rs` records and exposes metrics, and `src/power_reading.rs` handles AppleSMC access. `Cargo.toml` and `Cargo.lock` define the Rust application. `scripts/` contains the LaunchAgent installer and uninstaller.
 
 ## Build and Run
 
