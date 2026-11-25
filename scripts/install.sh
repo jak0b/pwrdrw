@@ -55,6 +55,7 @@ cat > "$plist" <<PLIST
   <key>ProgramArguments</key>
   <array>
     <string>$escaped_binary</string>
+    <string>metrics</string>
     <string>-p</string>
     <string>$port</string>
   </array>

@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-use clap::Parser;
+use clap::{Args as ClapArgs, Parser, Subcommand};
 use power_reading::SmcConnection;
 use tokio::time::sleep;
 
@@ -17,15 +17,8 @@ mod power_reading;
 compile_error!("power-usage-macos can only be built for macOS");
 
 #[derive(Debug, Parser)]
-#[command(
-    about = "Read power usage from the macOS AppleSMC service",
-    disable_help_flag = true
-)]
+#[command(about = "Read power usage from the macOS AppleSMC service")]
 struct Args {
-    /// Print help
-    #[arg(short = 'H', long = "help", action = clap::ArgAction::Help)]
-    help: bool,
-
     /// Continuously print readings
     #[arg(short = 'l', long = "loop")]
     looping: bool,
@@ -38,17 +31,29 @@ struct Args {
     #[arg(short = 'r', long, default_value_t = 1000, value_parser = clap::value_parser!(u64).range(1..=2147483647))]
     interval: u64,
 
-    /// Serve Prometheus metrics on this port
-    #[arg(
-        short = 'p',
-        long,
-        value_parser = clap::value_parser!(u16).range(1..),
-        conflicts_with_all = ["looping", "clear_screen", "interval"]
-    )]
-    port: Option<u16>,
+    #[command(subcommand)]
+    command: Option<Command>,
+}
 
-    /// Comma-separated IP addresses to serve metrics on (requires --port)
-    #[arg(short = 'h', long, value_delimiter = ',', requires = "port")]
+#[derive(Debug, Subcommand)]
+enum Command {
+    /// Serve Prometheus metrics over HTTP
+    Metrics(MetricsArgs),
+}
+
+#[derive(Debug, ClapArgs)]
+#[command(disable_help_flag = true)]
+struct MetricsArgs {
+    /// Print help
+    #[arg(short = 'H', long = "help", action = clap::ArgAction::Help)]
+    help: bool,
+
+    /// Port to serve metrics on
+    #[arg(short = 'p', long, value_parser = clap::value_parser!(u16).range(1..))]
+    port: u16,
+
+    /// Comma-separated IP addresses to serve metrics on
+    #[arg(short = 'h', long, value_delimiter = ',')]
     hosts: Option<Vec<IpAddr>>,
 }
 
@@ -72,14 +77,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     let smc = SmcConnection::open()?;
 
-    if let Some(port) = args.port {
-        let hosts = args.hosts.unwrap_or_else(|| {
+    if let Some(Command::Metrics(metrics_args)) = args.command {
+        let hosts = metrics_args.hosts.unwrap_or_else(|| {
             vec![
                 IpAddr::V4(Ipv4Addr::UNSPECIFIED),
                 IpAddr::V6(Ipv6Addr::UNSPECIFIED),
             ]
         });
-        return metrics::serve(port, hosts, smc).await;
+        return metrics::serve(metrics_args.port, hosts, smc).await;
     }
 
     let smc = Mutex::new(smc);
