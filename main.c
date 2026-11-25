@@ -85,18 +85,18 @@ int handle_request(struct mg_connection *conn) {
   }
 
   length = snprintf(body, sizeof(body),
-    "# HELP power_usage_dc_voltage_volts DC input voltage in volts.\n"
-    "# TYPE power_usage_dc_voltage_volts gauge\n"
-    "power_usage_dc_voltage_volts %.6f\n"
-    "# HELP power_usage_dc_current_amperes DC input current in amperes.\n"
-    "# TYPE power_usage_dc_current_amperes gauge\n"
-    "power_usage_dc_current_amperes %.6f\n"
-    "# HELP power_usage_dc_power_watts DC input power in watts.\n"
-    "# TYPE power_usage_dc_power_watts gauge\n"
-    "power_usage_dc_power_watts %.6f\n"
-    "# HELP power_usage_system_total_power_watts Total system power in watts.\n"
-    "# TYPE power_usage_system_total_power_watts gauge\n"
-    "power_usage_system_total_power_watts %.6f\n",
+    "# HELP macos_power_input_voltage_volts DC input voltage in volts.\n"
+    "# TYPE macos_power_input_voltage_volts gauge\n"
+    "macos_power_input_voltage_volts %.6f\n"
+    "# HELP macos_power_input_current_amperes DC input current in amperes.\n"
+    "# TYPE macos_power_input_current_amperes gauge\n"
+    "macos_power_input_current_amperes %.6f\n"
+    "# HELP macos_power_input_watts DC input power in watts.\n"
+    "# TYPE macos_power_input_watts gauge\n"
+    "macos_power_input_watts %.6f\n"
+    "# HELP macos_system_power_watts Total system power in watts.\n"
+    "# TYPE macos_system_power_watts gauge\n"
+    "macos_system_power_watts %.6f\n",
     readings.voltage, readings.current, readings.voltage * readings.current,
     readings.system_total);
   if (length < 0 || (size_t)length >= sizeof(body)) {
