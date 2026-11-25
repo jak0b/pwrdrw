@@ -8,7 +8,7 @@ log_dir="$HOME/Library/Logs/power-usage-macos"
 uid="$(id -u)"
 
 if [ "$uid" -eq 0 ]; then
-  echo "Run make uninstall as the user who installed the LaunchAgent, not with sudo" >&2
+  echo "Run scripts/uninstall.sh as the user who installed the LaunchAgent, not with sudo" >&2
   exit 1
 fi
 

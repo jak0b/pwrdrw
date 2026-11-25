@@ -3,7 +3,7 @@ set -eu
 
 label="com.jak0b.power-usage-macos.agent"
 port="${PORT:-9100}"
-binary="${1:-power-usage}"
+binary="${1:-target/release/power-usage}"
 
 case "$port" in
   ''|*[!0-9]*)
@@ -16,11 +16,11 @@ if [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
   exit 1
 fi
 if [ "$(id -u)" -eq 0 ]; then
-  echo "Run make install as the target user, not with sudo" >&2
+  echo "Run scripts/install.sh as the target user, not with sudo" >&2
   exit 1
 fi
 if [ ! -x "$binary" ]; then
-  echo "Binary not found or not executable: $binary" >&2
+  echo "Binary not found or not executable: $binary (build with cargo build --release first)" >&2
   exit 1
 fi
 
