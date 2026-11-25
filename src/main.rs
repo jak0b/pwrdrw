@@ -46,7 +46,7 @@ enum Command {
 struct MetricsArgs {
     /// Print help
     #[arg(short = 'H', long = "help", action = clap::ArgAction::Help)]
-    help: bool,
+    help: Option<bool>,
 
     /// Port to serve metrics on
     #[arg(short = 'p', long, value_parser = clap::value_parser!(u16).range(1..))]
