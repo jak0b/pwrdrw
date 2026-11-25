@@ -1,5 +1,9 @@
 use std::{ffi::c_void, io};
 
+const VOLTAGE_KEY: u32 = u32::from_be_bytes(*b"VD0R");
+const CURRENT_KEY: u32 = u32::from_be_bytes(*b"ID0R");
+const SYSTEM_TOTAL_KEY: u32 = u32::from_be_bytes(*b"PSTR");
+
 #[derive(Clone, Copy)]
 pub struct Readings {
     pub voltage: f32,
@@ -82,9 +86,9 @@ impl SmcConnection {
 
     pub fn read_power(&self) -> Result<Readings, io::Error> {
         Ok(Readings {
-            voltage: self.read_key(u32::from_be_bytes(*b"VD0R"))?,
-            current: self.read_key(u32::from_be_bytes(*b"ID0R"))?,
-            system_total: self.read_key(u32::from_be_bytes(*b"PSTR"))?,
+            voltage: self.read_key(VOLTAGE_KEY)?,
+            current: self.read_key(CURRENT_KEY)?,
+            system_total: self.read_key(SYSTEM_TOTAL_KEY)?,
         })
     }
 
