@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
   struct mg_callbacks callbacks = {0};
   struct mg_context *server;
   const char *server_options[5];
-  char listening_address[32];
+  char listening_address[64];
   char port_string[8];
   int loop = 0;
   int clear_screen = 0;
@@ -195,7 +195,8 @@ int main(int argc, char *argv[]) {
 
   if (metrics_port) {
     snprintf(port_string, sizeof(port_string), "%d", metrics_port);
-    snprintf(listening_address, sizeof(listening_address), "0.0.0.0:%s", port_string);
+    snprintf(listening_address, sizeof(listening_address), "0.0.0.0:%s,[::]:%s",
+      port_string, port_string);
     server_options[0] = "listening_ports";
     server_options[1] = listening_address;
     server_options[2] = "num_threads";

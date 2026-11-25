@@ -1,5 +1,5 @@
 CC = clang
-CFLAGS = -Wall -Wextra -O2
+CFLAGS = -Wall -Wextra -O2 -DUSE_IPV6
 TARGET = power-usage
 PORT ?= 9100
 

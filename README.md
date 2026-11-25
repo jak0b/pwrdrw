@@ -53,7 +53,7 @@ Build and install a per-user LaunchAgent that starts at login and restarts if it
 make install
 ```
 
-The service listens on all IPv4 network interfaces on port 9100. Choose another port with `make install PORT=9200`. Because the unauthenticated metrics endpoint is reachable from the network, restrict access with your firewall if needed.
+The service listens on all IPv4 and IPv6 network interfaces on port 9100. Choose another port with `make install PORT=9200`. Because the unauthenticated metrics endpoint is reachable from the network, restrict access with your firewall if needed.
 
 To stop the service for the current login session:
 
