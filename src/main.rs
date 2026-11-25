@@ -1,4 +1,10 @@
-use std::{error::Error, io, sync::Mutex, time::Duration};
+use std::{
+    error::Error,
+    io,
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+    sync::Mutex,
+    time::Duration,
+};
 
 use clap::Parser;
 use power_reading::SmcConnection;
@@ -11,8 +17,15 @@ mod power_reading;
 compile_error!("power-usage-macos can only be built for macOS");
 
 #[derive(Debug, Parser)]
-#[command(about = "Read power usage from the macOS AppleSMC service")]
+#[command(
+    about = "Read power usage from the macOS AppleSMC service",
+    disable_help_flag = true
+)]
 struct Args {
+    /// Print help
+    #[arg(short = 'H', long = "help", action = clap::ArgAction::Help)]
+    help: bool,
+
     /// Continuously print readings
     #[arg(short = 'l', long = "loop")]
     looping: bool,
@@ -33,6 +46,10 @@ struct Args {
         conflicts_with_all = ["looping", "clear_screen", "interval"]
     )]
     port: Option<u16>,
+
+    /// Comma-separated IP addresses to serve metrics on (requires --port)
+    #[arg(short = 'h', long, value_delimiter = ',', requires = "port")]
+    hosts: Option<Vec<IpAddr>>,
 }
 
 async fn print_readings(smc: &Mutex<SmcConnection>) -> Result<(), Box<dyn Error>> {
@@ -56,7 +73,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let smc = SmcConnection::open()?;
 
     if let Some(port) = args.port {
-        return metrics::serve(port, smc).await;
+        let hosts = args.hosts.unwrap_or_else(|| {
+            vec![
+                IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+                IpAddr::V6(Ipv6Addr::UNSPECIFIED),
+            ]
+        });
+        return metrics::serve(port, hosts, smc).await;
     }
 
     let smc = Mutex::new(smc);

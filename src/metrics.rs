@@ -1,7 +1,7 @@
 use std::{
     error::Error,
     future::IntoFuture,
-    net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV6},
+    net::{IpAddr, SocketAddr},
     sync::{Arc, Mutex},
 };
 
@@ -14,8 +14,8 @@ use axum::{
 };
 use metrics::{describe_gauge, gauge};
 use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
-use socket2::{Domain, Protocol, Socket, Type};
-use tokio::net::TcpListener;
+use socket2::{Domain, Protocol, SockAddr, Socket, Type};
+use tokio::{net::TcpListener, task::JoinSet};
 
 use crate::power_reading::{Readings, SmcConnection};
 
@@ -73,7 +73,28 @@ fn describe_metrics() {
     describe_gauge!("macos_system_power_watts", "Total system power in watts.");
 }
 
-pub async fn serve(port: u16, smc: SmcConnection) -> Result<(), Box<dyn Error>> {
+fn bind_listener(host: IpAddr, port: u16) -> Result<TcpListener, Box<dyn Error>> {
+    let domain = if host.is_ipv4() {
+        Domain::IPV4
+    } else {
+        Domain::IPV6
+    };
+    let socket = Socket::new(domain, Type::STREAM, Some(Protocol::TCP))?;
+    socket.set_reuse_address(true)?;
+    if host.is_ipv6() {
+        socket.set_only_v6(true)?;
+    }
+    socket.bind(&SockAddr::from(SocketAddr::new(host, port)))?;
+    socket.listen(1024)?;
+    socket.set_nonblocking(true)?;
+    Ok(TcpListener::from_std(socket.into())?)
+}
+
+pub async fn serve(
+    port: u16,
+    hosts: Vec<IpAddr>,
+    smc: SmcConnection,
+) -> Result<(), Box<dyn Error>> {
     let prometheus = PrometheusBuilder::new().install_recorder()?;
     describe_metrics();
     let state = MetricsState {
@@ -83,26 +104,31 @@ pub async fn serve(port: u16, smc: SmcConnection) -> Result<(), Box<dyn Error>> 
     let app = Router::new()
         .route("/metrics", get(metrics_handler))
         .with_state(state);
-    let ipv4 = TcpListener::bind(SocketAddr::from((Ipv4Addr::UNSPECIFIED, port))).await?;
 
-    let ipv6_socket = Socket::new(Domain::IPV6, Type::STREAM, Some(Protocol::TCP))?;
-    ipv6_socket.set_only_v6(true)?;
-    ipv6_socket.set_reuse_address(true)?;
-    ipv6_socket.bind(&SocketAddrV6::new(Ipv6Addr::UNSPECIFIED, port, 0, 0).into())?;
-    ipv6_socket.listen(1024)?;
-    ipv6_socket.set_nonblocking(true)?;
-    let ipv6 = TcpListener::from_std(ipv6_socket.into())?;
-
+    let listeners = hosts
+        .into_iter()
+        .map(|host| bind_listener(host, port))
+        .collect::<Result<Vec<_>, _>>()?;
+    let addresses = listeners
+        .iter()
+        .map(|listener| listener.local_addr())
+        .collect::<Result<Vec<_>, _>>()?;
     eprintln!(
-        "Serving metrics on http://{}/metrics and http://{}/metrics",
-        ipv4.local_addr()?,
-        ipv6.local_addr()?
+        "Serving metrics on {}",
+        addresses
+            .iter()
+            .map(|address| format!("http://{address}/metrics"))
+            .collect::<Vec<_>>()
+            .join(", ")
     );
-    let ipv4_app = app.clone();
-    let ipv6_app = app;
-    tokio::try_join!(
-        async move { axum::serve(ipv4, ipv4_app).into_future().await },
-        async move { axum::serve(ipv6, ipv6_app).into_future().await }
-    )?;
+
+    let mut servers = JoinSet::new();
+    for listener in listeners {
+        let app = app.clone();
+        servers.spawn(async move { axum::serve(listener, app).into_future().await });
+    }
+    while let Some(result) = servers.join_next().await {
+        result??;
+    }
     Ok(())
 }
