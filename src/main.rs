@@ -1,3 +1,6 @@
+// Based on original code by Luyer: https://apple.stackexchange.com/a/283403
+// Modified by M-1.
+
 use std::{
     error::Error,
     io,
