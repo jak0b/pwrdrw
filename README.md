@@ -4,16 +4,9 @@ Read DC input voltage, current, power, and total system power from the macOS App
 
 ## Build
 
-Clone the repository with its CivetWeb submodule:
+Build the Rust application:
 
 ```sh
-git clone --recurse-submodules https://github.com/jak0b/power-usage-macos.git
-```
-
-For an existing clone, initialize the submodule and build:
-
-```sh
-make submodule
 make
 ```
 
@@ -68,8 +61,6 @@ Remove the service, binary, and its log with:
 ```sh
 make uninstall
 ```
-
-The HTTP server is [CivetWeb v1.16](https://github.com/civetweb/civetweb/releases/tag/v1.16), pinned as a Git submodule in `vendor/civetweb/` under its MIT license. No separate HTTP package is needed.
 
 ## License
 
