@@ -1,14 +1,9 @@
-CC = clang
-CFLAGS = -Wall -Wextra -O2 -DUSE_IPV6
 TARGET = power-usage
 PORT ?= 9100
 
-.PHONY: all clean install uninstall submodule
+.PHONY: all clean install uninstall
 
 all: $(TARGET)
-
-submodule:
-	git submodule update --init vendor/civetweb
 
 install: $(TARGET)
 	PORT="$(PORT)" ./scripts/install.sh "$(TARGET)"
@@ -16,8 +11,10 @@ install: $(TARGET)
 uninstall:
 	./scripts/uninstall.sh
 
-$(TARGET): main.c vendor/civetweb/include/civetweb.h $(wildcard vendor/civetweb/src/*)
-	$(CC) $(CFLAGS) -DNO_SSL -Ivendor/civetweb/include main.c vendor/civetweb/src/civetweb.c -o $(TARGET) -framework IOKit -framework CoreFoundation
+$(TARGET): Cargo.toml Cargo.lock src/main.rs
+	cargo build --release
+	cp target/release/$(TARGET) $(TARGET)
 
 clean:
 	rm -f $(TARGET)
+	cargo clean
