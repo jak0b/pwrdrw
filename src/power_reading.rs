@@ -1,9 +1,12 @@
-use std::{ffi::c_void, io};
+use std::{
+    ffi::{CStr, c_char, c_void},
+    io,
+};
 
 const VOLTAGE_KEY: u32 = u32::from_be_bytes(*b"VD0R");
 const CURRENT_KEY: u32 = u32::from_be_bytes(*b"ID0R");
 const SYSTEM_TOTAL_KEY: u32 = u32::from_be_bytes(*b"PSTR");
-const AC_CURRENT_KEY: u32 = u32::from_be_bytes(*b"D0IR");
+const K_CF_STRING_ENCODING_UTF8: u32 = 0x0800_0100;
 
 #[derive(Clone, Copy)]
 pub struct Readings {
@@ -49,6 +52,19 @@ unsafe extern "C" {
         output: *mut c_void,
         output_size: *mut usize,
     ) -> i32;
+    fn IOPSCopyPowerSourcesInfo() -> *const c_void;
+    fn IOPSGetProvidingPowerSourceType(power_sources: *const c_void) -> *const c_void;
+}
+
+#[link(name = "CoreFoundation", kind = "framework")]
+unsafe extern "C" {
+    fn CFRelease(value: *const c_void);
+    fn CFStringGetCString(
+        value: *const c_void,
+        buffer: *mut c_char,
+        buffer_size: isize,
+        encoding: u32,
+    ) -> bool;
 }
 
 #[link(name = "System")]
@@ -91,8 +107,46 @@ impl SmcConnection {
             voltage: self.read_key(VOLTAGE_KEY)?,
             current: self.read_key(CURRENT_KEY)?,
             system_total: self.read_key(SYSTEM_TOTAL_KEY)?,
-            on_ac_power: self.read_u16_key(AC_CURRENT_KEY)? > 0,
+            on_ac_power: Self::on_ac_power()?,
         })
+    }
+
+    fn on_ac_power() -> Result<bool, io::Error> {
+        // SAFETY: The Power Sources API returns a retained object that is
+        // released below. Its power-source type is a borrowed CFString.
+        unsafe {
+            let power_sources = IOPSCopyPowerSourcesInfo();
+            if power_sources.is_null() {
+                return Err(io::Error::other(
+                    "Unable to read macOS power source information",
+                ));
+            }
+
+            let power_source_type = IOPSGetProvidingPowerSourceType(power_sources);
+            let result = if power_source_type.is_null() {
+                Err(io::Error::other(
+                    "Unable to determine the macOS power source type",
+                ))
+            } else {
+                let mut buffer = [0 as c_char; 32];
+                if !CFStringGetCString(
+                    power_source_type,
+                    buffer.as_mut_ptr(),
+                    buffer.len() as isize,
+                    K_CF_STRING_ENCODING_UTF8,
+                ) {
+                    Err(io::Error::other(
+                        "Unable to read the macOS power source type",
+                    ))
+                } else {
+                    let power_source_type = CStr::from_ptr(buffer.as_ptr());
+                    Ok(power_source_type.to_bytes() == b"AC Power")
+                }
+            };
+
+            CFRelease(power_sources);
+            result
+        }
     }
 
     fn read_key(&self, key: u32) -> Result<f32, io::Error> {
@@ -122,35 +176,6 @@ impl SmcConnection {
         }
 
         Ok(f32::from_ne_bytes(response.value))
-    }
-
-    fn read_u16_key(&self, key: u32) -> Result<u16, io::Error> {
-        let mut request: SmcKeyData = unsafe { std::mem::zeroed() };
-        let mut response: SmcKeyData = unsafe { std::mem::zeroed() };
-        let mut response_size = std::mem::size_of::<SmcKeyData>();
-        request.key = key;
-        request.size = 2;
-        request.command = 5;
-
-        // SAFETY: The request and response match the SMC structure expected by
-        // selector 2. Both buffers remain valid for the duration of the call.
-        let result = unsafe {
-            IOConnectCallStructMethod(
-                self.connection,
-                2,
-                (&request as *const SmcKeyData).cast(),
-                std::mem::size_of::<SmcKeyData>(),
-                (&mut response as *mut SmcKeyData).cast(),
-                &mut response_size,
-            )
-        };
-        if result != 0 {
-            return Err(io::Error::other(format!(
-                "Unable to read AppleSMC key {key:#010x}"
-            )));
-        }
-
-        Ok(u16::from_be_bytes([response.value[0], response.value[1]]))
     }
 }
 
