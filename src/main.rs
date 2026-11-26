@@ -85,6 +85,10 @@ async fn print_readings(smc: &Mutex<SmcConnection>) -> Result<(), Box<dyn Error>
         readings.voltage * readings.current
     );
     println!("System Total: {:.6}W", readings.system_total);
+    match readings.battery_percentage {
+        Some(percentage) => println!("Battery Charge: {percentage:.1}%"),
+        None => println!("Battery Charge: unavailable"),
+    }
     Ok(())
 }
 

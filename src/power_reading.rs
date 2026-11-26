@@ -6,6 +6,7 @@ use std::{
 const VOLTAGE_KEY: u32 = u32::from_be_bytes(*b"VD0R");
 const CURRENT_KEY: u32 = u32::from_be_bytes(*b"ID0R");
 const SYSTEM_TOTAL_KEY: u32 = u32::from_be_bytes(*b"PSTR");
+const BATTERY_PERCENTAGE_KEY: u32 = u32::from_be_bytes(*b"BUIC");
 const K_CF_STRING_ENCODING_UTF8: u32 = 0x0800_0100;
 
 #[derive(Clone, Copy)]
@@ -14,6 +15,7 @@ pub struct Readings {
     pub current: f32,
     pub system_total: f32,
     pub on_ac_power: bool,
+    pub battery_percentage: Option<f32>,
 }
 
 pub struct SmcConnection {
@@ -108,7 +110,15 @@ impl SmcConnection {
             current: self.read_key(CURRENT_KEY)?,
             system_total: self.read_key(SYSTEM_TOTAL_KEY)?,
             on_ac_power: Self::on_ac_power()?,
+            battery_percentage: self.battery_percentage(),
         })
+    }
+
+    fn battery_percentage(&self) -> Option<f32> {
+        // BUIC is the SMC's direct battery charge percentage.
+        self.read_key_u8(BATTERY_PERCENTAGE_KEY)
+            .ok()
+            .map(|percentage| f32::from(percentage.min(100)))
     }
 
     fn on_ac_power() -> Result<bool, io::Error> {
@@ -150,6 +160,16 @@ impl SmcConnection {
     }
 
     fn read_key(&self, key: u32) -> Result<f32, io::Error> {
+        let value = self.read_key_bytes(key)?;
+        Ok(f32::from_ne_bytes(value))
+    }
+
+    fn read_key_u8(&self, key: u32) -> Result<u8, io::Error> {
+        let value = self.read_key_bytes(key)?;
+        Ok(value[0])
+    }
+
+    fn read_key_bytes(&self, key: u32) -> Result<[u8; 4], io::Error> {
         let mut request: SmcKeyData = unsafe { std::mem::zeroed() };
         let mut response: SmcKeyData = unsafe { std::mem::zeroed() };
         let mut response_size = std::mem::size_of::<SmcKeyData>();
@@ -175,7 +195,7 @@ impl SmcConnection {
             )));
         }
 
-        Ok(f32::from_ne_bytes(response.value))
+        Ok(response.value)
     }
 }
 

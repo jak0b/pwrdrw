@@ -43,6 +43,9 @@ impl Metrics {
             .set(f64::from(readings.voltage) * f64::from(readings.current));
         gauge!("macos_system_power_watts").set(f64::from(readings.system_total));
         gauge!("macos_power_source_connected").set(if readings.on_ac_power { 1.0 } else { 0.0 });
+        if let Some(percentage) = readings.battery_percentage {
+            gauge!("macos_battery_charge_percentage").set(f64::from(percentage));
+        }
         self.readings_available.store(true, Ordering::Relaxed);
     }
 
@@ -98,5 +101,9 @@ fn describe_metrics() {
     describe_gauge!(
         "macos_power_source_connected",
         "Whether an external power source is connected (1) or the Mac is using battery power (0)."
+    );
+    describe_gauge!(
+        "macos_battery_charge_percentage",
+        "Battery charge as a percentage of full charge capacity."
     );
 }

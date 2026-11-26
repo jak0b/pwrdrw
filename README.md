@@ -12,7 +12,7 @@ cargo build --release
 
 ## Readings
 
-Run `pwrdrw` to print one reading, including the current power source (`AC Power` or `Battery`), DC input voltage/current/power, and total system power.
+Run `pwrdrw` to print one reading, including the current power source (`AC Power` or `Battery`), DC input voltage/current/power, total system power, and battery charge percentage when the SMC exposes it.
 
 Use `pwrdrw -l` to print readings repeatedly. The repeat interval defaults to one second.
 
@@ -35,13 +35,14 @@ pwrdrw metrics -p 9100 -l 500 -h 127.0.0.1,192.168.1.10
 
 Metrics are available at `http://<bound-address>:9100/metrics`. The app prints the actual bound addresses when it starts. When Prometheus runs on the same Mac, use `localhost:9100` as the scrape target if the server is listening on the loopback interface.
 
-The endpoint exports five gauges:
+The endpoint exports these gauges:
 
 - `macos_power_input_voltage_volts`
 - `macos_power_input_current_amperes`
 - `macos_power_input_watts`
 - `macos_system_power_watts`
 - `macos_power_source_connected`
+- `macos_battery_charge_percentage` (when the SMC percentage key is available)
 
 DC input power is calculated as voltage multiplied by current. `macos_power_source_connected` is `1` when an external power source is connected and `0` when the Mac is using battery power. The endpoint returns HTTP 503 if a reading fails.
 
