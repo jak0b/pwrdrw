@@ -10,7 +10,7 @@ Run `cargo build --release` to build `target/release/power-usage`. Run `./target
 
 ## Style and Testing
 
-Use standard Rust formatting; run `cargo fmt --check` and `cargo clippy -- -D warnings`. No automated test suite is configured. After changes, run `cargo build --release` and check that `./target/release/power-usage` prints both output lines with plausible values. Run it outside the sandbox for this manual check: sandboxed access to AppleSMC can fail with `Unable to open AppleSMC` even when the service is available. When changing metrics, also run the server outside the sandbox and check the `/metrics` response.
+Use standard Rust formatting; run `cargo fmt --check` and `cargo clippy -- -D warnings`. No automated test suite is configured. After changes, run `cargo build --release` and check that `./target/release/power-usage` prints the power source, DC input, and system total lines with plausible values. Run it outside the sandbox for this manual check: sandboxed access to AppleSMC can fail with `Unable to open AppleSMC` even when the service is available. When changing metrics, also run the server outside the sandbox and check the `/metrics` response.
 
 ## Commits and Pull Requests
 

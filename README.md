@@ -12,7 +12,7 @@ cargo build --release
 
 ## Readings
 
-Run `./target/release/power-usage` to print one reading.
+Run `./target/release/power-usage` to print one reading, including the current power source (`AC Power` or `Battery`), DC input voltage/current/power, and total system power.
 
 Use `./target/release/power-usage -l` to print readings repeatedly. The repeat interval defaults to one second.
 
@@ -35,14 +35,15 @@ By default, the server listens on all IPv4 and IPv6 network interfaces and polls
 
 Metrics are available at `http://<bound-address>:9100/metrics`. The app prints the actual bound addresses when it starts. When Prometheus runs on the same Mac, use `localhost:9100` as the scrape target if the server is listening on the loopback interface.
 
-The endpoint exports four gauges:
+The endpoint exports five gauges:
 
 - `macos_power_input_voltage_volts`
 - `macos_power_input_current_amperes`
 - `macos_power_input_watts`
 - `macos_system_power_watts`
+- `macos_power_source_connected`
 
-DC input power is calculated as voltage multiplied by current. The endpoint returns HTTP 503 if a reading fails.
+DC input power is calculated as voltage multiplied by current. `macos_power_source_connected` is `1` when an external power source is connected and `0` when the Mac is using battery power. The endpoint returns HTTP 503 if a reading fails.
 
 ## Install as a background service
 
