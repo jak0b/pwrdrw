@@ -71,6 +71,14 @@ async fn print_readings(smc: &Mutex<SmcConnection>) -> Result<(), Box<dyn Error>
         .map_err(|_| io::Error::other("AppleSMC lock was poisoned"))?
         .read_power()?;
     println!(
+        "Power Source: {}",
+        if readings.on_ac_power {
+            "AC Power"
+        } else {
+            "Battery"
+        }
+    );
+    println!(
         "DC In: {:.6}V {:.6}A {:.6}W",
         readings.voltage,
         readings.current,
