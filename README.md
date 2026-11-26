@@ -12,9 +12,9 @@ cargo build --release
 
 ## Readings
 
-Run `./target/release/power-usage` to print one reading, including the current power source (`AC Power` or `Battery`), DC input voltage/current/power, and total system power.
+Run `power-usage` to print one reading, including the current power source (`AC Power` or `Battery`), DC input voltage/current/power, and total system power.
 
-Use `./target/release/power-usage -l` to print readings repeatedly. The repeat interval defaults to one second.
+Use `power-usage -l` to print readings repeatedly. The repeat interval defaults to one second.
 
 - `-r milliseconds` changes the repeat interval.
 - `-c` clears the screen between readings.
@@ -24,13 +24,13 @@ Use `./target/release/power-usage -l` to print readings repeatedly. The repeat i
 Run the exporter on port 9100:
 
 ```sh
-./target/release/power-usage metrics -p 9100
+power-usage metrics -p 9100
 ```
 
 By default, the server listens on all IPv4 and IPv6 network interfaces and polls AppleSMC once per second in the background. Use `-l` to change the polling interval in milliseconds, and specify a comma-separated list of IP addresses with `-h` to restrict which interfaces it binds to:
 
 ```sh
-./target/release/power-usage metrics -p 9100 -l 500 -h 127.0.0.1,192.168.1.10
+power-usage metrics -p 9100 -l 500 -h 127.0.0.1,192.168.1.10
 ```
 
 Metrics are available at `http://<bound-address>:9100/metrics`. The app prints the actual bound addresses when it starts. When Prometheus runs on the same Mac, use `localhost:9100` as the scrape target if the server is listening on the loopback interface.
