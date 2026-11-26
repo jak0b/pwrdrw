@@ -3,12 +3,14 @@ use std::{ffi::c_void, io};
 const VOLTAGE_KEY: u32 = u32::from_be_bytes(*b"VD0R");
 const CURRENT_KEY: u32 = u32::from_be_bytes(*b"ID0R");
 const SYSTEM_TOTAL_KEY: u32 = u32::from_be_bytes(*b"PSTR");
+const AC_CURRENT_KEY: u32 = u32::from_be_bytes(*b"D0IR");
 
 #[derive(Clone, Copy)]
 pub struct Readings {
     pub voltage: f32,
     pub current: f32,
     pub system_total: f32,
+    pub on_ac_power: bool,
 }
 
 pub struct SmcConnection {
@@ -23,7 +25,7 @@ struct SmcKeyData {
     ignored2: [u8; 10],
     command: i8,
     ignored3: [u8; 5],
-    value: f32,
+    value: [u8; 4],
     ignored4: [u8; 28],
 }
 
@@ -89,6 +91,7 @@ impl SmcConnection {
             voltage: self.read_key(VOLTAGE_KEY)?,
             current: self.read_key(CURRENT_KEY)?,
             system_total: self.read_key(SYSTEM_TOTAL_KEY)?,
+            on_ac_power: self.read_u16_key(AC_CURRENT_KEY)? > 0,
         })
     }
 
@@ -118,7 +121,36 @@ impl SmcConnection {
             )));
         }
 
-        Ok(response.value)
+        Ok(f32::from_ne_bytes(response.value))
+    }
+
+    fn read_u16_key(&self, key: u32) -> Result<u16, io::Error> {
+        let mut request: SmcKeyData = unsafe { std::mem::zeroed() };
+        let mut response: SmcKeyData = unsafe { std::mem::zeroed() };
+        let mut response_size = std::mem::size_of::<SmcKeyData>();
+        request.key = key;
+        request.size = 2;
+        request.command = 5;
+
+        // SAFETY: The request and response match the SMC structure expected by
+        // selector 2. Both buffers remain valid for the duration of the call.
+        let result = unsafe {
+            IOConnectCallStructMethod(
+                self.connection,
+                2,
+                (&request as *const SmcKeyData).cast(),
+                std::mem::size_of::<SmcKeyData>(),
+                (&mut response as *mut SmcKeyData).cast(),
+                &mut response_size,
+            )
+        };
+        if result != 0 {
+            return Err(io::Error::other(format!(
+                "Unable to read AppleSMC key {key:#010x}"
+            )));
+        }
+
+        Ok(u16::from_be_bytes([response.value[0], response.value[1]]))
     }
 }
 
