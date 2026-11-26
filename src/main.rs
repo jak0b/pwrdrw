@@ -53,7 +53,7 @@ struct MetricsArgs {
     help: Option<bool>,
 
     /// Port to serve metrics on
-    #[arg(short = 'p', long, value_parser = clap::value_parser!(u16).range(1..))]
+    #[arg(short = 'p', long, default_value_t = 9100, value_parser = clap::value_parser!(u16).range(1..))]
     port: u16,
 
     /// Delay between AppleSMC readings in milliseconds

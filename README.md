@@ -21,13 +21,13 @@ Use `pwrdrw -l` to print readings repeatedly. The repeat interval defaults to on
 
 ## Prometheus metrics
 
-Run the exporter on port 9100:
+Run the exporter on the default port, 9100:
 
 ```sh
-pwrdrw metrics -p 9100
+pwrdrw metrics
 ```
 
-By default, the server listens on all IPv4 and IPv6 network interfaces and polls AppleSMC once per second in the background. Use `-l` to change the polling interval in milliseconds, and specify a comma-separated list of IP addresses with `-h` to restrict which interfaces it binds to:
+By default, the server listens on all IPv4 and IPv6 network interfaces and polls AppleSMC once per second in the background. Use `-p` to choose another port, `-l` to change the polling interval in milliseconds, and specify a comma-separated list of IP addresses with `-h` to restrict which interfaces it binds to:
 
 ```sh
 pwrdrw metrics -p 9100 -l 500 -h 127.0.0.1,192.168.1.10
