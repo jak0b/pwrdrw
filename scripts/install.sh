@@ -1,9 +1,10 @@
 #!/bin/sh
 set -eu
 
-label="com.jak0b.power-usage-macos.agent"
+label="com.jak0b.pwrdrw.agent"
+legacy_label="com.jak0b.power-usage-macos.agent"
 port="${PORT:-9100}"
-binary="${1:-target/release/power-usage}"
+binary="${1:-target/release/pwrdrw}"
 
 case "$port" in
   ''|*[!0-9]*)
@@ -24,15 +25,19 @@ if [ ! -x "$binary" ]; then
   exit 1
 fi
 
-app_dir="$HOME/Library/Application Support/power-usage-macos"
+app_dir="$HOME/Library/Application Support/pwrdrw"
+legacy_app_dir="$HOME/Library/Application Support/power-usage-macos"
 agent_dir="$HOME/Library/LaunchAgents"
-log_dir="$HOME/Library/Logs/power-usage-macos"
-installed_binary="$app_dir/power-usage"
+log_dir="$HOME/Library/Logs/pwrdrw"
+installed_binary="$app_dir/pwrdrw"
 plist="$agent_dir/$label.plist"
+legacy_plist="$agent_dir/$legacy_label.plist"
 uid="$(id -u)"
 
 mkdir -p "$app_dir" "$agent_dir" "$log_dir"
 install -m 755 "$binary" "$installed_binary"
+launchctl bootout "gui/$uid/$legacy_label" >/dev/null 2>&1 || true
+rm -f "$legacy_plist" "$legacy_app_dir/power-usage"
 
 xml_escape() {
   printf '%s' "$1" | sed \
@@ -64,9 +69,9 @@ cat > "$plist" <<PLIST
   <key>KeepAlive</key>
   <true/>
   <key>StandardOutPath</key>
-  <string>$escaped_log/power-usage.log</string>
+  <string>$escaped_log/pwrdrw.log</string>
   <key>StandardErrorPath</key>
-  <string>$escaped_log/power-usage.log</string>
+  <string>$escaped_log/pwrdrw.log</string>
 </dict>
 </plist>
 PLIST
@@ -78,4 +83,4 @@ launchctl bootstrap "gui/$uid" "$plist"
 
 printf 'Installed and started %s on port %s.\n' "$installed_binary" "$port"
 printf 'Metrics endpoint: http://<this-mac-ip>:%s/metrics\n' "$port"
-printf 'Logs: %s/power-usage.log\n' "$log_dir"
+printf 'Logs: %s/pwrdrw.log\n' "$log_dir"

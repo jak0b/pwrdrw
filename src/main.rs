@@ -18,10 +18,10 @@ mod power_reading;
 mod server;
 
 #[cfg(not(target_os = "macos"))]
-compile_error!("power-usage-macos can only be built for macOS");
+compile_error!("pwrdrw can only be built for macOS");
 
 #[derive(Debug, Parser)]
-#[command(about = "Read power usage from the macOS AppleSMC service")]
+#[command(about = "Read power draw from the macOS AppleSMC service")]
 struct Args {
     /// Continuously print readings
     #[arg(short = 'l', long = "loop")]

@@ -503,18 +503,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05c8b63e8d9609db387f0324918f81d68fe27748f084ef092fb35954d0539a85"
 
 [[package]]
-name = "power-usage"
-version = "0.1.0"
-dependencies = [
- "axum",
- "clap",
- "metrics",
- "metrics-exporter-prometheus",
- "socket2",
- "tokio",
-]
-
-[[package]]
 name = "ppv-lite86"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -530,6 +518,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "pwrdrw"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "clap",
+ "metrics",
+ "metrics-exporter-prometheus",
+ "socket2",
+ "tokio",
 ]
 
 [[package]]
