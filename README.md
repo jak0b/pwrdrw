@@ -33,6 +33,23 @@ one second.
 - `-r <milliseconds>` changes the repeat interval.
 - `-c` clears the screen between readings.
 
+## How it works
+
+On macOS, `pwrdrw` opens the `AppleSMC` service via the IOKit framework and reads
+four SMC keys: `VD0R` (input voltage), `ID0R` (input current), `PSTR` (total
+system power), and `BUIC` (battery percentage, optional). Whether the system is
+on AC power comes from the IOPS power-sources API rather than the SMC.
+
+On Linux, it walks `/sys/class/hwmon`, matches each sensor by its `*_label`
+name, and reads the corresponding `*_input` value, converting millivolts,
+milliamps, and microwatts into volts, amperes, and watts.
+
+The `pwrdrw metrics` server is built on `tokio` and `axum`. It spawns a
+background task that polls the sensors on the configured interval — on a
+blocking thread, guarded by a lock so the async runtime is never blocked — and
+records each reading into the `metrics` gauge registry, which the `/metrics`
+handler renders on every scrape.
+
 ## Prometheus metrics
 
 Run the exporter on the default port, 9100:
