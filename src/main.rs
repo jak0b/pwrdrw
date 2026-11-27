@@ -15,6 +15,7 @@ use tokio::time::sleep;
 
 mod metrics;
 #[cfg(target_os = "macos")]
+#[path = "power_reading_darwin.rs"]
 mod power_reading;
 #[cfg(target_os = "linux")]
 #[path = "linux_power_reading.rs"]
