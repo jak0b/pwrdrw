@@ -17,7 +17,7 @@ use tokio::{net::TcpListener, task::JoinSet};
 
 use crate::{
     metrics::{Metrics, start_polling},
-    power_reading::SmcConnection,
+    power_reading::PowerReader,
 };
 
 async fn metrics_handler(State(metrics): State<Metrics>) -> Response<Body> {
@@ -37,7 +37,7 @@ async fn metrics_handler(State(metrics): State<Metrics>) -> Response<Body> {
 fn unavailable_response() -> Response<Body> {
     Response::builder()
         .status(StatusCode::SERVICE_UNAVAILABLE)
-        .body(Body::from("Unable to read AppleSMC\n"))
+        .body(Body::from("Unable to read power sensors\n"))
         .expect("static error response is valid")
 }
 
@@ -62,7 +62,7 @@ pub async fn serve(
     port: u16,
     poll_interval: u64,
     hosts: Vec<IpAddr>,
-    smc: SmcConnection,
+    smc: PowerReader,
 ) -> Result<(), Box<dyn Error>> {
     let metrics = Metrics::new()?;
     let app = Router::new()

@@ -18,7 +18,7 @@ pub struct Readings {
     pub battery_percentage: Option<f32>,
 }
 
-pub struct SmcConnection {
+pub struct PowerReader {
     connection: u32,
 }
 
@@ -74,7 +74,7 @@ unsafe extern "C" {
     static mach_task_self_: u32;
 }
 
-impl SmcConnection {
+impl PowerReader {
     pub fn open() -> Result<Self, io::Error> {
         let service_name = b"AppleSMC\0";
         let mut iterator = 0;
@@ -199,7 +199,7 @@ impl SmcConnection {
     }
 }
 
-impl Drop for SmcConnection {
+impl Drop for PowerReader {
     fn drop(&mut self) {
         // SAFETY: The connection was successfully opened by this instance.
         unsafe {

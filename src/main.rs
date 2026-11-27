@@ -10,18 +10,22 @@ use std::{
 };
 
 use clap::{Args as ClapArgs, Parser, Subcommand};
-use power_reading::SmcConnection;
+use power_reading::PowerReader;
 use tokio::time::sleep;
 
 mod metrics;
+#[cfg(target_os = "macos")]
+mod power_reading;
+#[cfg(target_os = "linux")]
+#[path = "linux_power_reading.rs"]
 mod power_reading;
 mod server;
 
-#[cfg(not(target_os = "macos"))]
-compile_error!("pwrdrw can only be built for macOS");
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+compile_error!("pwrdrw supports macOS and Linux");
 
 #[derive(Debug, Parser)]
-#[command(about = "Read power draw from the macOS AppleSMC service")]
+#[command(about = "Read power draw from macOS AppleSMC or Linux hwmon sensors")]
 struct Args {
     /// Continuously print readings
     #[arg(short = 'l', long = "loop")]
@@ -56,7 +60,7 @@ struct MetricsArgs {
     #[arg(short = 'p', long, default_value_t = 9100, value_parser = clap::value_parser!(u16).range(1..))]
     port: u16,
 
-    /// Delay between AppleSMC readings in milliseconds
+    /// Delay between power sensor readings in milliseconds
     #[arg(short = 'l', long, default_value_t = 1000, value_parser = clap::value_parser!(u64).range(1..=2147483647))]
     poll_interval: u64,
 
@@ -65,10 +69,10 @@ struct MetricsArgs {
     hosts: Option<Vec<IpAddr>>,
 }
 
-async fn print_readings(smc: &Mutex<SmcConnection>) -> Result<(), Box<dyn Error>> {
+async fn print_readings(smc: &Mutex<PowerReader>) -> Result<(), Box<dyn Error>> {
     let readings = smc
         .lock()
-        .map_err(|_| io::Error::other("AppleSMC lock was poisoned"))?
+        .map_err(|_| io::Error::other("Power sensor lock was poisoned"))?
         .read_power()?;
     println!(
         "Power Source: {}",
@@ -95,7 +99,7 @@ async fn print_readings(smc: &Mutex<SmcConnection>) -> Result<(), Box<dyn Error>
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
-    let smc = SmcConnection::open()?;
+    let smc = PowerReader::open()?;
 
     if let Some(Command::Metrics(metrics_args)) = args.command {
         let hosts = metrics_args.hosts.unwrap_or_else(|| {

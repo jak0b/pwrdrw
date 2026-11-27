@@ -11,7 +11,7 @@ use metrics::{describe_gauge, gauge};
 use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
 use tokio::time::MissedTickBehavior;
 
-use crate::power_reading::{Readings, SmcConnection};
+use crate::power_reading::{PowerReader, Readings};
 
 #[derive(Clone)]
 pub struct Metrics {
@@ -54,7 +54,7 @@ impl Metrics {
     }
 }
 
-pub fn start_polling(smc: SmcConnection, poll_interval: Duration, metrics: Metrics) {
+pub fn start_polling(smc: PowerReader, poll_interval: Duration, metrics: Metrics) {
     let smc = Arc::new(Mutex::new(smc));
 
     tokio::spawn(async move {
