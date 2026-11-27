@@ -13,6 +13,11 @@ use tokio::time::MissedTickBehavior;
 
 use crate::power_reading::{PowerReader, Readings};
 
+#[cfg(target_os = "macos")]
+const SYSTEM: &str = "macos";
+#[cfg(target_os = "linux")]
+const SYSTEM: &str = "linux";
+
 #[derive(Clone)]
 pub struct Metrics {
     readings_available: Arc<AtomicBool>,
@@ -37,32 +42,22 @@ impl Metrics {
     }
 
     fn record(&self, readings: Readings) {
-        #[cfg(target_os = "macos")]
-        let names = (
-            "macos_power_input_voltage_volts",
-            "macos_power_input_current_amperes",
-            "macos_power_input_watts",
-            "macos_system_power_watts",
-            "macos_power_source_connected",
-            "macos_battery_charge_percentage",
-        );
-        #[cfg(target_os = "linux")]
-        let names = (
-            "linux_power_input_voltage_volts",
-            "linux_power_input_current_amperes",
-            "linux_power_input_watts",
-            "linux_system_power_watts",
-            "linux_power_source_connected",
-            "linux_battery_charge_percentage",
-        );
-
-        gauge!(names.0).set(f64::from(readings.voltage));
-        gauge!(names.1).set(f64::from(readings.current));
-        gauge!(names.2).set(f64::from(readings.voltage) * f64::from(readings.current));
-        gauge!(names.3).set(f64::from(readings.system_total));
-        gauge!(names.4).set(if readings.on_ac_power { 1.0 } else { 0.0 });
+        gauge!("power_input_voltage_volts", "system" => SYSTEM)
+            .set(f64::from(readings.voltage));
+        gauge!("power_input_current_amperes", "system" => SYSTEM)
+            .set(f64::from(readings.current));
+        gauge!("power_input_watts", "system" => SYSTEM)
+            .set(f64::from(readings.voltage) * f64::from(readings.current));
+        gauge!("system_power_watts", "system" => SYSTEM)
+            .set(f64::from(readings.system_total));
+        gauge!("power_source_connected", "system" => SYSTEM).set(if readings.on_ac_power {
+            1.0
+        } else {
+            0.0
+        });
         if let Some(percentage) = readings.battery_percentage {
-            gauge!(names.5).set(f64::from(percentage));
+            gauge!("battery_charge_percentage", "system" => SYSTEM)
+                .set(f64::from(percentage));
         }
         self.readings_available.store(true, Ordering::Relaxed);
     }
@@ -106,35 +101,22 @@ pub fn start_polling(smc: PowerReader, poll_interval: Duration, metrics: Metrics
 }
 
 fn describe_metrics() {
-    #[cfg(target_os = "macos")]
-    let names = (
-        "macos_power_input_voltage_volts",
-        "macos_power_input_current_amperes",
-        "macos_power_input_watts",
-        "macos_system_power_watts",
-        "macos_power_source_connected",
-        "macos_battery_charge_percentage",
-    );
-    #[cfg(target_os = "linux")]
-    let names = (
-        "linux_power_input_voltage_volts",
-        "linux_power_input_current_amperes",
-        "linux_power_input_watts",
-        "linux_system_power_watts",
-        "linux_power_source_connected",
-        "linux_battery_charge_percentage",
-    );
-
-    describe_gauge!(names.0, "DC input voltage in volts.");
-    describe_gauge!(names.1, "DC input current in amperes.");
-    describe_gauge!(names.2, "DC input power in watts.");
-    describe_gauge!(names.3, "Total system power in watts.");
     describe_gauge!(
-        names.4,
+        "power_input_voltage_volts",
+        "DC input voltage in volts."
+    );
+    describe_gauge!(
+        "power_input_current_amperes",
+        "DC input current in amperes."
+    );
+    describe_gauge!("power_input_watts", "DC input power in watts.");
+    describe_gauge!("system_power_watts", "Total system power in watts.");
+    describe_gauge!(
+        "power_source_connected",
         "Whether an external power source is connected (1) or the system is using battery power (0)."
     );
     describe_gauge!(
-        names.5,
+        "battery_charge_percentage",
         "Battery charge as a percentage of full charge capacity."
     );
 }

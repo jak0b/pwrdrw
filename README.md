@@ -58,21 +58,21 @@ the actual bound addresses when it starts. When Prometheus runs on the same
 machine, use `localhost:9100` as the scrape target if the server is listening on
 the loopback interface.
 
-On macOS, the endpoint exports these gauges:
+The endpoint exports the same gauges on macOS and Linux. Each gauge has a
+`system` label (`macos` or `linux`) identifying the operating system:
 
-- `macos_power_input_voltage_volts`
-- `macos_power_input_current_amperes`
-- `macos_power_input_watts`
-- `macos_system_power_watts`
-- `macos_power_source_connected`
-- `macos_battery_charge_percentage` (when the SMC percentage key is available)
+- `power_input_voltage_volts`
+- `power_input_current_amperes`
+- `power_input_watts`
+- `system_power_watts`
+- `power_source_connected`
+- `battery_charge_percentage` (when available)
 
-On Linux, the equivalent gauges use the `linux_` prefix (for example,
-`linux_system_power_watts` and `linux_power_source_connected`). DC input power
-is calculated as voltage multiplied by current. The
-`*_power_source_connected` gauge is `1` when an external power source is
-connected and `0` when the system is using battery power. The endpoint returns
-HTTP 503 if a reading fails.
+For example, a macOS reading is exported as
+`system_power_watts{system="macos"}`. DC input power is calculated as voltage
+multiplied by current. The `power_source_connected` gauge is `1` when an
+external power source is connected and `0` when the system is using battery
+power. The endpoint returns HTTP 503 if a reading fails.
 
 ## Install as a background service
 
