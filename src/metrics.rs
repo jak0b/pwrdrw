@@ -37,14 +37,32 @@ impl Metrics {
     }
 
     fn record(&self, readings: Readings) {
-        gauge!("macos_power_input_voltage_volts").set(f64::from(readings.voltage));
-        gauge!("macos_power_input_current_amperes").set(f64::from(readings.current));
-        gauge!("macos_power_input_watts")
-            .set(f64::from(readings.voltage) * f64::from(readings.current));
-        gauge!("macos_system_power_watts").set(f64::from(readings.system_total));
-        gauge!("macos_power_source_connected").set(if readings.on_ac_power { 1.0 } else { 0.0 });
+        #[cfg(target_os = "macos")]
+        let names = (
+            "macos_power_input_voltage_volts",
+            "macos_power_input_current_amperes",
+            "macos_power_input_watts",
+            "macos_system_power_watts",
+            "macos_power_source_connected",
+            "macos_battery_charge_percentage",
+        );
+        #[cfg(target_os = "linux")]
+        let names = (
+            "linux_power_input_voltage_volts",
+            "linux_power_input_current_amperes",
+            "linux_power_input_watts",
+            "linux_system_power_watts",
+            "linux_power_source_connected",
+            "linux_battery_charge_percentage",
+        );
+
+        gauge!(names.0).set(f64::from(readings.voltage));
+        gauge!(names.1).set(f64::from(readings.current));
+        gauge!(names.2).set(f64::from(readings.voltage) * f64::from(readings.current));
+        gauge!(names.3).set(f64::from(readings.system_total));
+        gauge!(names.4).set(if readings.on_ac_power { 1.0 } else { 0.0 });
         if let Some(percentage) = readings.battery_percentage {
-            gauge!("macos_battery_charge_percentage").set(f64::from(percentage));
+            gauge!(names.5).set(f64::from(percentage));
         }
         self.readings_available.store(true, Ordering::Relaxed);
     }
@@ -67,7 +85,7 @@ pub fn start_polling(smc: PowerReader, poll_interval: Duration, metrics: Metrics
             let result = tokio::task::spawn_blocking(move || {
                 let smc = smc
                     .lock()
-                    .map_err(|_| std::io::Error::other("AppleSMC lock was poisoned"))?;
+                    .map_err(|_| std::io::Error::other("Power sensor lock was poisoned"))?;
                 smc.read_power()
             })
             .await;
@@ -75,11 +93,11 @@ pub fn start_polling(smc: PowerReader, poll_interval: Duration, metrics: Metrics
             match result {
                 Ok(Ok(readings)) => metrics.record(readings),
                 Ok(Err(error)) => {
-                    eprintln!("Unable to read AppleSMC: {error}");
+                    eprintln!("Unable to read power sensors: {error}");
                     metrics.mark_unavailable();
                 }
                 Err(error) => {
-                    eprintln!("AppleSMC polling task failed: {error}");
+                    eprintln!("Power sensor polling task failed: {error}");
                     metrics.mark_unavailable();
                 }
             }
@@ -88,22 +106,35 @@ pub fn start_polling(smc: PowerReader, poll_interval: Duration, metrics: Metrics
 }
 
 fn describe_metrics() {
-    describe_gauge!(
+    #[cfg(target_os = "macos")]
+    let names = (
         "macos_power_input_voltage_volts",
-        "DC input voltage in volts."
-    );
-    describe_gauge!(
         "macos_power_input_current_amperes",
-        "DC input current in amperes."
-    );
-    describe_gauge!("macos_power_input_watts", "DC input power in watts.");
-    describe_gauge!("macos_system_power_watts", "Total system power in watts.");
-    describe_gauge!(
+        "macos_power_input_watts",
+        "macos_system_power_watts",
         "macos_power_source_connected",
-        "Whether an external power source is connected (1) or the Mac is using battery power (0)."
+        "macos_battery_charge_percentage",
+    );
+    #[cfg(target_os = "linux")]
+    let names = (
+        "linux_power_input_voltage_volts",
+        "linux_power_input_current_amperes",
+        "linux_power_input_watts",
+        "linux_system_power_watts",
+        "linux_power_source_connected",
+        "linux_battery_charge_percentage",
+    );
+
+    describe_gauge!(names.0, "DC input voltage in volts.");
+    describe_gauge!(names.1, "DC input current in amperes.");
+    describe_gauge!(names.2, "DC input power in watts.");
+    describe_gauge!(names.3, "Total system power in watts.");
+    describe_gauge!(
+        names.4,
+        "Whether an external power source is connected (1) or the system is using battery power (0)."
     );
     describe_gauge!(
-        "macos_battery_charge_percentage",
+        names.5,
         "Battery charge as a percentage of full charge capacity."
     );
 }
