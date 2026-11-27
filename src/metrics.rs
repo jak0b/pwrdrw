@@ -14,7 +14,7 @@ use tokio::time::MissedTickBehavior;
 use crate::power_reading::{PowerReader, Readings};
 
 #[cfg(target_os = "macos")]
-const SYSTEM: &str = "macos";
+const SYSTEM: &str = "darwin";
 #[cfg(target_os = "linux")]
 const SYSTEM: &str = "linux";
 
@@ -42,21 +42,21 @@ impl Metrics {
     }
 
     fn record(&self, readings: Readings) {
-        gauge!("power_input_voltage_volts", "system" => SYSTEM)
+        gauge!("pwrdrw_power_input_voltage_volts", "system" => SYSTEM)
             .set(f64::from(readings.voltage));
-        gauge!("power_input_current_amperes", "system" => SYSTEM)
+        gauge!("pwrdrw_power_input_current_amperes", "system" => SYSTEM)
             .set(f64::from(readings.current));
-        gauge!("power_input_watts", "system" => SYSTEM)
+        gauge!("pwrdrw_power_input_watts", "system" => SYSTEM)
             .set(f64::from(readings.voltage) * f64::from(readings.current));
-        gauge!("system_power_watts", "system" => SYSTEM)
+        gauge!("pwrdrw_system_power_watts", "system" => SYSTEM)
             .set(f64::from(readings.system_total));
-        gauge!("power_source_connected", "system" => SYSTEM).set(if readings.on_ac_power {
+        gauge!("pwrdrw_power_source_connected", "system" => SYSTEM).set(if readings.on_ac_power {
             1.0
         } else {
             0.0
         });
         if let Some(percentage) = readings.battery_percentage {
-            gauge!("battery_charge_percentage", "system" => SYSTEM)
+            gauge!("pwrdrw_battery_charge_percentage", "system" => SYSTEM)
                 .set(f64::from(percentage));
         }
         self.readings_available.store(true, Ordering::Relaxed);
@@ -102,21 +102,21 @@ pub fn start_polling(smc: PowerReader, poll_interval: Duration, metrics: Metrics
 
 fn describe_metrics() {
     describe_gauge!(
-        "power_input_voltage_volts",
+        "pwrdrw_power_input_voltage_volts",
         "DC input voltage in volts."
     );
     describe_gauge!(
-        "power_input_current_amperes",
+        "pwrdrw_power_input_current_amperes",
         "DC input current in amperes."
     );
-    describe_gauge!("power_input_watts", "DC input power in watts.");
-    describe_gauge!("system_power_watts", "Total system power in watts.");
+    describe_gauge!("pwrdrw_power_input_watts", "DC input power in watts.");
+    describe_gauge!("pwrdrw_system_power_watts", "Total system power in watts.");
     describe_gauge!(
-        "power_source_connected",
+        "pwrdrw_power_source_connected",
         "Whether an external power source is connected (1) or the system is using battery power (0)."
     );
     describe_gauge!(
-        "battery_charge_percentage",
+        "pwrdrw_battery_charge_percentage",
         "Battery charge as a percentage of full charge capacity."
     );
 }
