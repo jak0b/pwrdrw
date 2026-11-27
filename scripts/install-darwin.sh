@@ -17,7 +17,7 @@ if [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
   exit 1
 fi
 if [ "$(id -u)" -eq 0 ]; then
-  echo "Run scripts/install.sh as the target user, not with sudo" >&2
+  echo "Run scripts/install-darwin.sh as the target user, not with sudo" >&2
   exit 1
 fi
 if [ ! -x "$binary" ]; then

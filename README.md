@@ -50,14 +50,14 @@ On Linux, the equivalent gauges use the `linux_` prefix (for example, `linux_sys
 
 ## Install as a background service
 
-Build and install a per-user LaunchAgent that starts at login and restarts if it exits:
+On macOS, build and install a per-user LaunchAgent that starts at login and restarts if it exits:
 
 ```sh
 cargo build --release
-./scripts/install.sh target/release/pwrdrw
+./scripts/install-darwin.sh target/release/pwrdrw
 ```
 
-The service listens on all IPv4 and IPv6 network interfaces on port 9100. Choose another port with `PORT=9200 ./scripts/install.sh target/release/pwrdrw`. Because the unauthenticated metrics endpoint is reachable from the network, restrict access with your firewall if needed.
+The service listens on all IPv4 and IPv6 network interfaces on port 9100. Choose another port with `PORT=9200 ./scripts/install-darwin.sh target/release/pwrdrw`. Because the unauthenticated metrics endpoint is reachable from the network, restrict access with your firewall if needed.
 
 To stop the service for the current login session:
 
@@ -70,7 +70,22 @@ The installed binary is in `~/Library/Application Support/pwrdrw/`, and the Laun
 Remove the service, binary, and its log with:
 
 ```sh
-./scripts/uninstall.sh
+./scripts/uninstall-darwin.sh
+```
+
+On Linux with systemd, install a per-user service that starts at login and restarts if it exits:
+
+```sh
+cargo build --release
+./scripts/install-systemd.sh target/release/pwrdrw
+```
+
+Use `PORT=9200` to select another port. The service listens on all IPv4 and IPv6 network interfaces, so restrict access with your firewall if needed. View its logs with `journalctl --user -u pwrdrw.service`. The installed binary is in `~/.local/share/pwrdrw/`, and the unit is in `~/.config/systemd/user/`.
+
+Stop the service for the current login session with `systemctl --user stop pwrdrw.service`, or remove the service and installed binary with:
+
+```sh
+./scripts/uninstall-systemd.sh
 ```
 
 ## License
